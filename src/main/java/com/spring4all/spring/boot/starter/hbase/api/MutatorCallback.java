@@ -14,8 +14,9 @@ public interface MutatorCallback {
 
     /**
      * 使用mutator api to update put and delete
-     * @param mutator
-     * @throws Throwable
+     *
+     * @param mutator 更新或者删除的数据
+     * @throws Throwable 异常抛出
      */
     void doInMutator(BufferedMutator mutator) throws Throwable;
 }

@@ -1,12 +1,11 @@
 package com.spring4all.spring.boot.starter.hbase.api;
 
-import org.springframework.dao.UncategorizedDataAccessException;
-
 /**
  * HBase Data Access exception.
  *
  * @author Costin Leau
  */
+
 /**
  * JThink@JThink
  *
@@ -15,7 +14,7 @@ import org.springframework.dao.UncategorizedDataAccessException;
  * desc： copy from spring data hadoop hbase, modified by JThink
  * date： 2016-11-15 16:08:41
  */
-public class HbaseSystemException extends UncategorizedDataAccessException {
+public class HbaseSystemException extends RuntimeException {
 
     public HbaseSystemException(Exception cause) {
         super(cause.getMessage(), cause);

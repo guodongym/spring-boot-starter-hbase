@@ -13,24 +13,15 @@ import org.springframework.util.StopWatch;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Central class for accessing the HBase API. Simplifies the use of HBase and helps to avoid common errors.
  * It executes core HBase workflow, leaving application code to invoke actions and extract results.
  *
+ * @author zhaoguodong
  * @author Costin Leau
  * @author Shaun Elliott
- */
-/**
- * JThink@JThink
- *
  * @author JThink
- * @version 0.0.1
- * desc： copy from spring data hadoop hbase, modified by JThink, use the 1.0.0 api
- * date： 2016-11-15 15:42:46
  */
 public class HbaseTemplate implements HbaseOperations {
 
@@ -71,42 +62,29 @@ public class HbaseTemplate implements HbaseOperations {
     }
 
     @Override
-    public <T> List<T> find(String tableName, String family, final RowMapper<T> action) {
+    public <T> List<T> find(String tableName, String family, final RowMapper<T> mapper) {
         Scan scan = new Scan();
-        scan.setCaching(5000);
         scan.addFamily(Bytes.toBytes(family));
-        return this.find(tableName, scan, action);
+        return this.find(tableName, scan, mapper);
     }
 
     @Override
-    public <T> List<T> find(String tableName, String family, String qualifier, final RowMapper<T> action) {
+    public <T> List<T> find(String tableName, String family, String qualifier, final RowMapper<T> mapper) {
         Scan scan = new Scan();
-        scan.setCaching(5000);
         scan.addColumn(Bytes.toBytes(family), Bytes.toBytes(qualifier));
-        return this.find(tableName, scan, action);
+        return this.find(tableName, scan, mapper);
     }
 
     @Override
-    public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> action) {
-        return this.execute(tableName, new TableCallback<List<T>>() {
-            @Override
-            public List<T> doInTable(Table table) throws Throwable {
-                int caching = scan.getCaching();
-                // 如果caching未设置(默认是1)，将默认配置成5000
-                if (caching == 1) {
-                    scan.setCaching(5000);
+    public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper) {
+        return this.execute(tableName, table -> {
+            try (ResultScanner scanner = table.getScanner(scan)) {
+                List<T> rs = new ArrayList<>();
+                int rowNum = 0;
+                for (Result result : scanner) {
+                    rs.add(mapper.mapRow(result, rowNum++));
                 }
-                ResultScanner scanner = table.getScanner(scan);
-                try {
-                    List<T> rs = new ArrayList<T>();
-                    int rowNum = 0;
-                    for (Result result : scanner) {
-                        rs.add(action.mapRow(result, rowNum++));
-                    }
-                    return rs;
-                } finally {
-                    scanner.close();
-                }
+                return rs;
             }
         });
     }
@@ -123,22 +101,18 @@ public class HbaseTemplate implements HbaseOperations {
 
     @Override
     public <T> T get(String tableName, final String rowName, final String familyName, final String qualifier, final RowMapper<T> mapper) {
-        return this.execute(tableName, new TableCallback<T>() {
-            @Override
-            public T doInTable(Table table) throws Throwable {
-                Get get = new Get(Bytes.toBytes(rowName));
-                if (StringUtils.isNotBlank(familyName)) {
-                    byte[] family = Bytes.toBytes(familyName);
-                    if (StringUtils.isNotBlank(qualifier)) {
-                        get.addColumn(family, Bytes.toBytes(qualifier));
-                    }
-                    else {
-                        get.addFamily(family);
-                    }
+        return this.execute(tableName, table -> {
+            Get get = new Get(Bytes.toBytes(rowName));
+            if (StringUtils.isNotBlank(familyName)) {
+                byte[] family = Bytes.toBytes(familyName);
+                if (StringUtils.isNotBlank(qualifier)) {
+                    get.addColumn(family, Bytes.toBytes(qualifier));
+                } else {
+                    get.addFamily(family);
                 }
-                Result result = table.get(get);
-                return mapper.mapRow(result, 0);
             }
+            Result result = table.get(get);
+            return mapper.mapRow(result, 0);
         });
     }
 
@@ -172,21 +146,15 @@ public class HbaseTemplate implements HbaseOperations {
 
     @Override
     public void saveOrUpdate(String tableName, final Mutation mutation) {
-        this.execute(tableName, new MutatorCallback() {
-            @Override
-            public void doInMutator(BufferedMutator mutator) throws Throwable {
-                mutator.mutate(mutation);
-            }
+        this.execute(tableName, mutator -> {
+            mutator.mutate(mutation);
         });
     }
 
     @Override
     public void saveOrUpdates(String tableName, final List<Mutation> mutations) {
-        this.execute(tableName, new MutatorCallback() {
-            @Override
-            public void doInMutator(BufferedMutator mutator) throws Throwable {
-                mutator.mutate(mutations);
-            }
+        this.execute(tableName, mutator -> {
+            mutator.mutate(mutations);
         });
     }
 
@@ -199,10 +167,7 @@ public class HbaseTemplate implements HbaseOperations {
             synchronized (this) {
                 if (null == this.connection) {
                     try {
-                        ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(200, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
-                        // init pool
-                        poolExecutor.prestartCoreThread();
-                        this.connection = ConnectionFactory.createConnection(configuration, poolExecutor);
+                        this.connection = ConnectionFactory.createConnection(configuration);
                     } catch (IOException e) {
                         LOGGER.error("hbase connection资源池创建失败");
                     }
