@@ -4,6 +4,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Interface that specifies a basic set of Hbase operations, implemented by {@link HBaseTemplate}. Not often used,
@@ -50,6 +51,15 @@ public interface HBaseOperations {
      * @return a list of objects mapping the scanned rows
      */
     <T> List<T> find(String tableName, String family, String qualifier, final RowMapper<T> mapper);
+
+    /**
+     * 扫描数据返回map
+     *
+     * @param tableName target table
+     * @param scan      table scanner
+     * @return a list of the scanned rows
+     */
+    List<Map<String, byte[]>> find(String tableName, Scan scan);
 
     /**
      * Scans the target table using the given {@link Scan} object. Suitable for maximum control over the scanning

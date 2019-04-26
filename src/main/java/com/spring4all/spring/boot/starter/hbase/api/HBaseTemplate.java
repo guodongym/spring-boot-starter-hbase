@@ -13,6 +13,7 @@ import org.springframework.util.StopWatch;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Central class for accessing the HBase API. Simplifies the use of HBase and helps to avoid common errors.
@@ -74,6 +75,11 @@ public class HBaseTemplate implements HBaseOperations {
         Scan scan = new Scan();
         scan.addColumn(Bytes.toBytes(family), Bytes.toBytes(qualifier));
         return this.find(tableName, scan, mapper);
+    }
+
+    @Override
+    public List<Map<String, byte[]>> find(String tableName, final Scan scan) {
+        return this.find(tableName, scan, RowMapper.DEFAULT);
     }
 
     @Override
