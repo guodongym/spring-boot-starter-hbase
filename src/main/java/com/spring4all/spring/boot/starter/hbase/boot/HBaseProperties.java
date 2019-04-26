@@ -17,7 +17,7 @@ import java.util.Map;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "spring.data.hbase")
-class HbaseProperties {
+public class HBaseProperties {
 
     private String quorum;
 

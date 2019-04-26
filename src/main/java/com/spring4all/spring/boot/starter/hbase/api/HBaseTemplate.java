@@ -23,15 +23,15 @@ import java.util.List;
  * @author Shaun Elliott
  * @author JThink
  */
-public class HbaseTemplate implements HbaseOperations {
+public class HBaseTemplate implements HBaseOperations {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HbaseTemplate.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HBaseTemplate.class);
 
     private Configuration configuration;
 
     private volatile Connection connection;
 
-    public HbaseTemplate(Configuration configuration) {
+    public HBaseTemplate(Configuration configuration) {
         this.setConfiguration(configuration);
         Assert.notNull(configuration, " a valid configuration is required");
     }
@@ -41,21 +41,22 @@ public class HbaseTemplate implements HbaseOperations {
         Assert.notNull(action, "Callback object must not be null");
         Assert.notNull(tableName, "No table specified");
 
-        StopWatch sw = new StopWatch();
+        StopWatch sw = new StopWatch("HBase Query");
         sw.start();
         Table table = null;
         try {
             table = this.getConnection().getTable(TableName.valueOf(tableName));
             return action.doInTable(table);
         } catch (Throwable throwable) {
-            throw new HbaseSystemException(throwable);
+            throw new HBaseSystemException(throwable);
         } finally {
             if (null != table) {
                 try {
                     table.close();
                     sw.stop();
+                    LOGGER.info(sw.shortSummary());
                 } catch (IOException e) {
-                    LOGGER.error("hbase资源释放失败");
+                    LOGGER.error("hbase资源释放失败", e);
                 }
             }
         }
@@ -121,7 +122,7 @@ public class HbaseTemplate implements HbaseOperations {
         Assert.notNull(action, "Callback object must not be null");
         Assert.notNull(tableName, "No table specified");
 
-        StopWatch sw = new StopWatch();
+        StopWatch sw = new StopWatch("HBase SaveOrUpdate");
         sw.start();
         BufferedMutator mutator = null;
         try {
@@ -130,15 +131,16 @@ public class HbaseTemplate implements HbaseOperations {
             action.doInMutator(mutator);
         } catch (Throwable throwable) {
             sw.stop();
-            throw new HbaseSystemException(throwable);
+            throw new HBaseSystemException(throwable);
         } finally {
             if (null != mutator) {
                 try {
                     mutator.flush();
                     mutator.close();
                     sw.stop();
+                    LOGGER.info(sw.shortSummary());
                 } catch (IOException e) {
-                    LOGGER.error("hbase mutator资源释放失败");
+                    LOGGER.error("hbase mutator资源释放失败", e);
                 }
             }
         }

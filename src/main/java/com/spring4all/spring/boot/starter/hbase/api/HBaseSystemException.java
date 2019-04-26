@@ -14,13 +14,13 @@ package com.spring4all.spring.boot.starter.hbase.api;
  * desc： copy from spring data hadoop hbase, modified by JThink
  * date： 2016-11-15 16:08:41
  */
-public class HbaseSystemException extends RuntimeException {
+public class HBaseSystemException extends RuntimeException {
 
-    public HbaseSystemException(Exception cause) {
+    public HBaseSystemException(Exception cause) {
         super(cause.getMessage(), cause);
     }
 
-    public HbaseSystemException(Throwable throwable) {
+    public HBaseSystemException(Throwable throwable) {
         super(throwable.getMessage(), throwable);
     }
 }

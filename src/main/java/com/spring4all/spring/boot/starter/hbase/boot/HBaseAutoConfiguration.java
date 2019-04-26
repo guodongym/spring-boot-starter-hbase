@@ -1,6 +1,6 @@
 package com.spring4all.spring.boot.starter.hbase.boot;
 
-import com.spring4all.spring.boot.starter.hbase.api.HbaseTemplate;
+import com.spring4all.spring.boot.starter.hbase.api.HBaseTemplate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,20 +18,20 @@ import org.springframework.context.annotation.Bean;
  * date： 2016-11-16 11:11:27
  */
 @org.springframework.context.annotation.Configuration
-@EnableConfigurationProperties(HbaseProperties.class)
-@ConditionalOnClass(HbaseTemplate.class)
-public class HbaseAutoConfiguration {
+@EnableConfigurationProperties(HBaseProperties.class)
+@ConditionalOnClass(HBaseTemplate.class)
+public class HBaseAutoConfiguration {
 
-    private final HbaseProperties hbaseProperties;
+    private final HBaseProperties hbaseProperties;
 
     @Autowired
-    public HbaseAutoConfiguration(HbaseProperties hbaseProperties) {
+    public HBaseAutoConfiguration(HBaseProperties hbaseProperties) {
         this.hbaseProperties = hbaseProperties;
     }
 
     @Bean
-    @ConditionalOnMissingBean(HbaseTemplate.class)
-    public HbaseTemplate hbaseTemplate() {
+    @ConditionalOnMissingBean(HBaseTemplate.class)
+    public HBaseTemplate hbaseTemplate() {
         Configuration configuration = HBaseConfiguration.create();
         configuration.set("hbase.zookeeper.quorum", this.hbaseProperties.getQuorum());
         configuration.set("hbase.rootdir", hbaseProperties.getRootDir());
@@ -44,6 +44,6 @@ public class HbaseAutoConfiguration {
 
         // 设置其他自定义配置
         hbaseProperties.getProperties().forEach(configuration::set);
-        return new HbaseTemplate(configuration);
+        return new HBaseTemplate(configuration);
     }
 }

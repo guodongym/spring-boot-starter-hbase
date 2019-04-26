@@ -6,7 +6,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import java.util.List;
 
 /**
- * Interface that specifies a basic set of Hbase operations, implemented by {@link HbaseTemplate}. Not often used,
+ * Interface that specifies a basic set of Hbase operations, implemented by {@link HBaseTemplate}. Not often used,
  * but a useful option to enhance testability, as it can easily be mocked or stubbed.
  *
  * @author zhaoguodong
@@ -14,7 +14,7 @@ import java.util.List;
  * @author Shaun Elliott
  * @author JThink
  */
-public interface HbaseOperations {
+public interface HBaseOperations {
 
     /**
      * Executes the given action against the specified table handling resource management.
