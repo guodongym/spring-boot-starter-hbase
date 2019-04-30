@@ -1,7 +1,11 @@
 package com.spring4all.spring.boot.starter.hbase.api;
 
+import com.spring4all.spring.boot.starter.hbase.page.Column;
+import com.spring4all.spring.boot.starter.hbase.page.PageRequest;
+import com.spring4all.spring.boot.starter.hbase.page.PageResult;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.FilterList;
 
 import java.util.List;
 import java.util.Map;
@@ -70,6 +74,122 @@ public interface HBaseOperations {
      * @return 返回处理结果
      */
     <T> T find(String tableName, Scan scan, ScannerCallback<T> scannerCallback);
+
+    /**
+     * 获取第一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey
+     * @param stopRow   结束rowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findFirstPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取第一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey
+     * @param stopRow    结束rowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findFirstPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
+     * 获取最后一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey
+     * @param stopRow   结束rowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findLastPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取最后一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey
+     * @param stopRow    结束rowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findLastPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
+     * 获取前一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey
+     * @param stopRow   结束rowKey,需要传递当前页第一条数据的RowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取前一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey
+     * @param stopRow    结束rowKey,需要传递当前页第一条数据的RowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
+     * 获取后一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey,需要传递当前页最后一条数据的RowKey
+     * @param stopRow   结束rowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取后一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey,需要传递当前页最后一条数据的RowKey
+     * @param stopRow    结束rowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
+     * 分页查询数据，不支持跳页
+     * 基于每页的第一条和最后一条数据改变rowKey查询范围，达到分页的目的，总条数使用AggregationClient服务端并行统计
+     *
+     * @param tableName   表名
+     * @param pageRequest 请求参数
+     * @param mapper      mapper type, implemented by {@link RowMapper}
+     * @param filterList  过滤器列表，不需要配置分页过滤器
+     * @return 分页封装数据
+     */
+    <T> PageResult<T> findPage(String tableName, PageRequest pageRequest, RowMapper<T> mapper, FilterList filterList);
 
     /**
      * Scans the target table using the given {@link Scan} object. Suitable for maximum control over the scanning
