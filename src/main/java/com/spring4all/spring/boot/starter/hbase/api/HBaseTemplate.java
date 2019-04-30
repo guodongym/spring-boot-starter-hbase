@@ -4,6 +4,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
+import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +85,15 @@ public class HBaseTemplate implements HBaseOperations {
     }
 
     @Override
+    public <T> T find(String tableName, final Scan scan, final ScannerCallback<T> scannerCallback) {
+        return this.execute(tableName, table -> {
+            try (ResultScanner scanner = table.getScanner(scan)) {
+                return scannerCallback.doInScanner(scanner);
+            }
+        });
+    }
+
+    @Override
     public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper) {
         return this.execute(tableName, table -> {
             try (ResultScanner scanner = table.getScanner(scan)) {
@@ -93,6 +104,17 @@ public class HBaseTemplate implements HBaseOperations {
                 }
                 return rs;
             }
+        });
+    }
+
+    @Override
+    public long findRowCount(String tableName, String startRow, String stopRow) {
+        final AggregationClient aggregationClient = new AggregationClient(this.configuration);
+        final Scan scan = new Scan();
+        scan.setStartRow(Bytes.toBytes(startRow));
+        scan.setStopRow(Bytes.toBytes(stopRow));
+        return this.execute(tableName, table -> {
+            return aggregationClient.rowCount(table, new LongColumnInterpreter(), scan);
         });
     }
 

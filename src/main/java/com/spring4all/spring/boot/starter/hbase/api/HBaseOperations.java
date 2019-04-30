@@ -62,6 +62,16 @@ public interface HBaseOperations {
     List<Map<String, byte[]>> find(String tableName, Scan scan);
 
     /**
+     * 使用scan扫描结果，在ScannerCallback中利用ResultScanner处理业务逻辑，不需要关心资源的开闭
+     *
+     * @param tableName       表名
+     * @param scan            扫描配置
+     * @param scannerCallback 执行回调
+     * @return 返回处理结果
+     */
+    <T> T find(String tableName, Scan scan, ScannerCallback<T> scannerCallback);
+
+    /**
      * Scans the target table using the given {@link Scan} object. Suitable for maximum control over the scanning
      * process.
      * The content is processed row by row by the given action, returning a list of domain objects.
@@ -72,6 +82,17 @@ public interface HBaseOperations {
      * @return a list of objects mapping the scanned rows
      */
     <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper);
+
+
+    /**
+     * 根据rowKey范围获取总条数，使用协处理器服务端并行统计
+     *
+     * @param tableName 表名
+     * @param startRow  起始row
+     * @param stopRow   结束row
+     * @return 数据条数
+     */
+    long findRowCount(String tableName, String startRow, String stopRow);
 
     /**
      * Gets an individual row from the given table. The content is mapped by the given action.
