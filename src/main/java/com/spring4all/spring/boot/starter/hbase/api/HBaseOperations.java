@@ -277,10 +277,11 @@ public interface HBaseOperations {
      *
      * @param tableName 表名
      * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @param columns   需要返回的列  允许null
      * @param rowNames  rowKey列表
      * @return object mapping the target row
      */
-    <T> List<T> multiGet(String tableName, RowMapper<T> mapper, String... rowNames);
+    <T> List<T> multiGet(String tableName, RowMapper<T> mapper, List<Column> columns, String... rowNames);
 
     /**
      * 执行put update or delete

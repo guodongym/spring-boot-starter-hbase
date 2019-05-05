@@ -258,12 +258,6 @@ public class HBaseTemplate implements HBaseOperations {
             scan.setReversed(true);
         }
 
-        if (columns != null) {
-            for (Column column : columns) {
-                scan.addColumn(Bytes.toBytes(column.getFamily()), Bytes.toBytes(column.getQualifier()));
-            }
-        }
-
         if (filterList == null) {
             filterList = new FilterList();
         }
@@ -288,7 +282,7 @@ public class HBaseTemplate implements HBaseOperations {
             }
         });
 
-        return this.multiGet(tableName, mapper, rowList.toArray(new String[]{}));
+        return this.multiGet(tableName, mapper, columns, rowList.toArray(new String[]{}));
     }
 
     @Override
@@ -345,12 +339,17 @@ public class HBaseTemplate implements HBaseOperations {
     }
 
     @Override
-    public <T> List<T> multiGet(String tableName, final RowMapper<T> mapper, final String... rowNames) {
+    public <T> List<T> multiGet(String tableName, final RowMapper<T> mapper, List<Column> columns, final String... rowNames) {
         return this.execute(tableName, table -> {
             List<Get> gets = new ArrayList<>();
             for (String row : rowNames) {
                 final Get get = new Get(Bytes.toBytes(row));
                 get.setMaxVersions();
+                if (columns != null) {
+                    for (Column column : columns) {
+                        get.addColumn(Bytes.toBytes(column.getFamily()), Bytes.toBytes(column.getQualifier()));
+                    }
+                }
                 gets.add(get);
             }
             Result[] results = table.get(gets);
