@@ -1,8 +1,6 @@
 package com.spring4all.spring.boot.starter.hbase.api;
 
 import com.spring4all.spring.boot.starter.hbase.page.Column;
-import com.spring4all.spring.boot.starter.hbase.page.PageRequest;
-import com.spring4all.spring.boot.starter.hbase.page.PageResult;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
@@ -10,6 +8,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
 import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
@@ -156,16 +155,9 @@ public class HBaseTemplate implements HBaseOperations {
     }
 
     @Override
-    public <T> PageResult<T> findPage(String tableName, PageRequest pageRequest, RowMapper<T> mapper, FilterList filterList) {
-
-        final String pageFirstRowKey = pageRequest.getPageFirstRowKey();
-        final String pageLastRowKey = pageRequest.getPageLastRowKey();
-        final String startRow = pageRequest.getStartRow();
-        final String stopRow = pageRequest.getStopRow();
-        final Integer pageSize = pageRequest.getPageSize();
-        final boolean isAsc = pageRequest.isAsc();
-        final Boolean isNext = pageRequest.getIsNext();
-        final List<Column> columns = pageRequest.getColumns();
+    public <T> List<T> findPage(String tableName, String startRow, String stopRow, int pageSize,
+                                String pageFirstRowKey, String pageLastRowKey, boolean isAsc, Boolean isNext,
+                                RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
 
         Assert.notNull(pageFirstRowKey, "pageFirstRowKey must not be null");
         Assert.notNull(pageLastRowKey, "pageLastRowKey must not be null");
@@ -191,12 +183,7 @@ public class HBaseTemplate implements HBaseOperations {
             }
         }
 
-        final long rowCount = this.findRowCount(tableName, startRow, stopRow);
-
-        final PageResult<T> pageResult = new PageResult<>();
-        pageResult.setTotalCount(rowCount);
-        pageResult.setData(page);
-        return pageResult;
+        return page;
     }
 
     private <T> List<T> findFirstOrLastPage(String tableName, int pageSize, RowMapper<T> mapper, Scan scan, List<Column> columns, FilterList filterList) {
@@ -247,6 +234,63 @@ public class HBaseTemplate implements HBaseOperations {
         return filterList;
     }
 
+
+    @Override
+    public <T> List<T> findPage(String tableName, String startRow, String stopRow,
+                                int pageNo, int pageSize, boolean isAsc,
+                                RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
+        if (pageSize == 0) {
+            pageSize = 10;
+        }
+        if (pageNo == 0) {
+            pageNo = 1;
+        }
+        // 计算起始页和结束页
+        int pageStartNo = (pageNo - 1) * pageSize;
+        int pageEndNo = pageStartNo + pageSize;
+
+        final Scan scan = new Scan();
+        scan.setStartRow(Bytes.toBytes(startRow));
+        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
+        scan.setMaxVersions();
+
+        if (!isAsc) {
+            scan.setReversed(true);
+        }
+
+        if (columns != null) {
+            for (Column column : columns) {
+                scan.addColumn(Bytes.toBytes(column.getFamily()), Bytes.toBytes(column.getQualifier()));
+            }
+        }
+
+        if (filterList == null) {
+            filterList = new FilterList();
+        }
+        filterList.addFilter(new FirstKeyOnlyFilter());
+        scan.setFilter(filterList);
+
+        final int finalPageSize = pageSize;
+        final List<String> rowList = this.execute(tableName, table -> {
+            try (ResultScanner scanner = table.getScanner(scan)) {
+                List<String> rs = new ArrayList<>();
+                int rowNum = 0;
+                for (Result result : scanner) {
+                    if (finalPageSize == rs.size()) {
+                        break;
+                    }
+                    if (rowNum >= pageStartNo && rowNum < pageEndNo) {
+                        rs.add(Bytes.toString(result.getRow()));
+                    }
+                    rowNum++;
+                }
+                return rs;
+            }
+        });
+
+        return this.multiGet(tableName, mapper, rowList.toArray(new String[]{}));
+    }
+
     @Override
     public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper) {
         return this.execute(tableName, table -> {
@@ -286,6 +330,7 @@ public class HBaseTemplate implements HBaseOperations {
     public <T> T get(String tableName, final String rowName, final String familyName, final String qualifier, final RowMapper<T> mapper) {
         return this.execute(tableName, table -> {
             Get get = new Get(Bytes.toBytes(rowName));
+            get.setMaxVersions();
             if (StringUtils.isNotBlank(familyName)) {
                 byte[] family = Bytes.toBytes(familyName);
                 if (StringUtils.isNotBlank(qualifier)) {
@@ -296,6 +341,26 @@ public class HBaseTemplate implements HBaseOperations {
             }
             Result result = table.get(get);
             return mapper.mapRow(result, 0);
+        });
+    }
+
+    @Override
+    public <T> List<T> multiGet(String tableName, final RowMapper<T> mapper, final String... rowNames) {
+        return this.execute(tableName, table -> {
+            List<Get> gets = new ArrayList<>();
+            for (String row : rowNames) {
+                final Get get = new Get(Bytes.toBytes(row));
+                get.setMaxVersions();
+                gets.add(get);
+            }
+            Result[] results = table.get(gets);
+
+            List<T> rs = new ArrayList<>();
+            int rowNum = 0;
+            for (Result result : results) {
+                rs.add(mapper.mapRow(result, rowNum++));
+            }
+            return rs;
         });
     }
 

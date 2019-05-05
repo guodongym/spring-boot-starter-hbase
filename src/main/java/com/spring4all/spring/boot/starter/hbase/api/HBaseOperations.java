@@ -1,8 +1,6 @@
 package com.spring4all.spring.boot.starter.hbase.api;
 
 import com.spring4all.spring.boot.starter.hbase.page.Column;
-import com.spring4all.spring.boot.starter.hbase.page.PageRequest;
-import com.spring4all.spring.boot.starter.hbase.page.PageResult;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterList;
@@ -181,15 +179,42 @@ public interface HBaseOperations {
 
     /**
      * 分页查询数据，不支持跳页
-     * 基于每页的第一条和最后一条数据改变rowKey查询范围，达到分页的目的，总条数使用AggregationClient服务端并行统计
+     * 基于每页的第一条和最后一条数据改变rowKey查询范围，达到分页的目的
      *
-     * @param tableName   表名
-     * @param pageRequest 请求参数
-     * @param mapper      mapper type, implemented by {@link RowMapper}
-     * @param filterList  过滤器列表，不需要配置分页过滤器
-     * @return 分页封装数据
+     * @param tableName       表名
+     * @param startRow        开始rowKey
+     * @param stopRow         结束rowKey
+     * @param pageSize        每页条数
+     * @param pageFirstRowKey 当前页的首行数据的rowKey, 由后端返回
+     * @param pageLastRowKey  当前页的末行数据的rowKey, 由后端返回
+     * @param isAsc           是否正序
+     * @param isNext          是否下一页 第一页:null 上一页:false 下一页: true
+     * @param mapper          mapper type, implemented by {@link RowMapper}
+     * @param columns         需要返回的列  允许null
+     * @param filterList      过滤器列表，不需要配置分页过滤器 允许null
+     * @return 该页数据
      */
-    <T> PageResult<T> findPage(String tableName, PageRequest pageRequest, RowMapper<T> mapper, FilterList filterList);
+    <T> List<T> findPage(String tableName, String startRow, String stopRow, int pageSize,
+                         String pageFirstRowKey, String pageLastRowKey, boolean isAsc, Boolean isNext,
+                         RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
+     * 分页查询数据，支持跳页
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey
+     * @param stopRow    结束rowKey
+     * @param pageNo     页码
+     * @param pageSize   每页条数
+     * @param isAsc      是否正序
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @param columns    需要返回的列  允许null
+     * @param filterList 过滤器列表 允许null
+     * @return 该页数据
+     */
+    <T> List<T> findPage(String tableName, String startRow, String stopRow,
+                         int pageNo, int pageSize, boolean isAsc,
+                         RowMapper<T> mapper, List<Column> columns, FilterList filterList);
 
     /**
      * Scans the target table using the given {@link Scan} object. Suitable for maximum control over the scanning
@@ -246,6 +271,16 @@ public interface HBaseOperations {
      * @return object mapping the target row
      */
     <T> T get(String tableName, final String rowName, final String familyName, final String qualifier, final RowMapper<T> mapper);
+
+    /**
+     * 批量get
+     *
+     * @param tableName 表名
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @param rowNames  rowKey列表
+     * @return object mapping the target row
+     */
+    <T> List<T> multiGet(String tableName, RowMapper<T> mapper, String... rowNames);
 
     /**
      * 执行put update or delete
