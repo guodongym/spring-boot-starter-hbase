@@ -228,16 +228,16 @@ public interface HBaseOperations {
      */
     <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper);
 
-
     /**
      * 根据rowKey范围获取总条数，使用协处理器服务端并行统计
      *
-     * @param tableName 表名
-     * @param startRow  起始row
-     * @param stopRow   结束row
+     * @param tableName  表名
+     * @param startRow   起始row
+     * @param stopRow    结束row
+     * @param filterList 过滤器列表 允许null
      * @return 数据条数
      */
-    long findRowCount(String tableName, String startRow, String stopRow);
+    long findRowCount(String tableName, String startRow, String stopRow, FilterList filterList);
 
     /**
      * Gets an individual row from the given table. The content is mapped by the given action.

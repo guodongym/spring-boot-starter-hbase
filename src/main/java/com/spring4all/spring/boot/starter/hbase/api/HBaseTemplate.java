@@ -60,12 +60,12 @@ public class HBaseTemplate implements HBaseOperations {
             if (null != table) {
                 try {
                     table.close();
-                    sw.stop();
-                    LOGGER.info(sw.shortSummary());
                 } catch (IOException e) {
                     LOGGER.error("hbase资源释放失败", e);
                 }
             }
+            sw.stop();
+            LOGGER.info(sw.shortSummary());
         }
     }
 
@@ -250,18 +250,23 @@ public class HBaseTemplate implements HBaseOperations {
         int pageEndNo = pageStartNo + pageSize;
 
         final Scan scan = new Scan();
-        scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
         scan.setMaxVersions();
 
+        // 如果设置反转，则需要同时反转开始和结束row
         if (!isAsc) {
-            scan.setReversed(true);
+            String tmp = stopRow;
+            stopRow = startRow;
+            startRow = tmp;
         }
+
+        scan.setReversed(!isAsc);
+        scan.setStartRow(Bytes.toBytes(startRow));
+        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
 
         if (filterList == null) {
             filterList = new FilterList();
+            filterList.addFilter(new FirstKeyOnlyFilter());
         }
-        filterList.addFilter(new FirstKeyOnlyFilter());
         scan.setFilter(filterList);
 
         final int finalPageSize = pageSize;
@@ -300,11 +305,12 @@ public class HBaseTemplate implements HBaseOperations {
     }
 
     @Override
-    public long findRowCount(String tableName, String startRow, String stopRow) {
+    public long findRowCount(String tableName, String startRow, String stopRow, FilterList filterList) {
         final AggregationClient aggregationClient = new AggregationClient(this.configuration);
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
         scan.setStopRow(Bytes.toBytes(stopRow));
+        scan.setFilter(filterList);
         return this.execute(tableName, table -> {
             return aggregationClient.rowCount(table, new LongColumnInterpreter(), scan);
         });

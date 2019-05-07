@@ -1,5 +1,6 @@
 package com.spring4all.spring.boot.starter.hbase.boot;
 
+import com.spring4all.spring.boot.starter.hbase.aop.TimeKeepingAspect;
 import com.spring4all.spring.boot.starter.hbase.api.HBaseTemplate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -45,5 +46,10 @@ public class HBaseAutoConfiguration {
         // 设置其他自定义配置
         hbaseProperties.getProperties().forEach(configuration::set);
         return new HBaseTemplate(configuration);
+    }
+
+    @Bean
+    public TimeKeepingAspect timeKeepingAspect() {
+        return new TimeKeepingAspect();
     }
 }
