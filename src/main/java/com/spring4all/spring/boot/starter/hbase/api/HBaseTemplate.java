@@ -14,7 +14,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
-import org.springframework.util.StopWatch;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,9 +37,12 @@ public class HBaseTemplate implements HBaseOperations {
 
     private volatile Connection connection;
 
+    private final AggregationClient aggregationClient;
+
     public HBaseTemplate(Configuration configuration) {
         this.setConfiguration(configuration);
         Assert.notNull(configuration, " a valid configuration is required");
+        aggregationClient = new AggregationClient(this.configuration);
     }
 
     @Override
@@ -48,8 +50,6 @@ public class HBaseTemplate implements HBaseOperations {
         Assert.notNull(action, "Callback object must not be null");
         Assert.notNull(tableName, "No table specified");
 
-        StopWatch sw = new StopWatch("HBase Query");
-        sw.start();
         Table table = null;
         try {
             table = this.getConnection().getTable(TableName.valueOf(tableName));
@@ -64,8 +64,6 @@ public class HBaseTemplate implements HBaseOperations {
                     LOGGER.error("hbase资源释放失败", e);
                 }
             }
-            sw.stop();
-            LOGGER.info(sw.shortSummary());
         }
     }
 
@@ -263,6 +261,12 @@ public class HBaseTemplate implements HBaseOperations {
         scan.setStartRow(Bytes.toBytes(startRow));
         scan.setStopRow(Bytes.toBytes(stopRow + "_"));
 
+        if (columns != null) {
+            for (Column column : columns) {
+                scan.addColumn(Bytes.toBytes(column.getFamily()), Bytes.toBytes(column.getQualifier()));
+            }
+        }
+
         if (filterList == null) {
             filterList = new FilterList();
             filterList.addFilter(new FirstKeyOnlyFilter());
@@ -306,7 +310,6 @@ public class HBaseTemplate implements HBaseOperations {
 
     @Override
     public long findRowCount(String tableName, String startRow, String stopRow, FilterList filterList) {
-        final AggregationClient aggregationClient = new AggregationClient(this.configuration);
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
         scan.setStopRow(Bytes.toBytes(stopRow));
@@ -374,23 +377,18 @@ public class HBaseTemplate implements HBaseOperations {
         Assert.notNull(action, "Callback object must not be null");
         Assert.notNull(tableName, "No table specified");
 
-        StopWatch sw = new StopWatch("HBase SaveOrUpdate");
-        sw.start();
         BufferedMutator mutator = null;
         try {
             BufferedMutatorParams mutatorParams = new BufferedMutatorParams(TableName.valueOf(tableName));
             mutator = this.getConnection().getBufferedMutator(mutatorParams.writeBufferSize(3 * 1024 * 1024));
             action.doInMutator(mutator);
         } catch (Throwable throwable) {
-            sw.stop();
             throw new HBaseSystemException(throwable);
         } finally {
             if (null != mutator) {
                 try {
                     mutator.flush();
                     mutator.close();
-                    sw.stop();
-                    LOGGER.info(sw.shortSummary());
                 } catch (IOException e) {
                     LOGGER.error("hbase mutator资源释放失败", e);
                 }

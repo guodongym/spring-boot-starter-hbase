@@ -32,7 +32,7 @@ public class TimeKeepingAspect {
     @Around("methodPointcut()")
     public Object doAround(ProceedingJoinPoint pjp) throws Throwable {
 
-        StopWatch sw = new StopWatch(pjp.getSignature().toShortString());
+        StopWatch sw = new StopWatch(pjp.getSignature().toString());
         sw.start();
 
         Object result;
