@@ -271,7 +271,9 @@ public class HBaseTemplate implements HBaseOperations {
             filterList = new FilterList();
             filterList.addFilter(new FirstKeyOnlyFilter());
         }
-        scan.setFilter(filterList);
+        if (filterList.hasFilterRow()) {
+            scan.setFilter(filterList);
+        }
 
         final int finalPageSize = pageSize;
         final List<String> rowList = this.execute(tableName, table -> {
@@ -313,7 +315,10 @@ public class HBaseTemplate implements HBaseOperations {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
         scan.setStopRow(Bytes.toBytes(stopRow));
-        scan.setFilter(filterList);
+
+        if (filterList != null && filterList.hasFilterRow()) {
+            scan.setFilter(filterList);
+        }
         return this.execute(tableName, table -> {
             return aggregationClient.rowCount(table, new LongColumnInterpreter(), scan);
         });
