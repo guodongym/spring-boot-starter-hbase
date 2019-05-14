@@ -6,7 +6,7 @@
 
     <groupId>com.bitnei.bigdata</groupId>
     <artifactId>spring-boot-starter-hbase</artifactId>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>1.3.0-RELEASE</version>
 
     <name>spring-boot-starter-hbase</name>
     <url>https://github.com/SpringForAll/spring-boot-starter-hbase</url>

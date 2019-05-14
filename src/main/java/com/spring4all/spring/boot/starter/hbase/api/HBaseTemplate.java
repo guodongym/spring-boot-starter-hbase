@@ -156,10 +156,6 @@ public class HBaseTemplate implements HBaseOperations {
     public <T> List<T> findPage(String tableName, String startRow, String stopRow, int pageSize,
                                 String pageFirstRowKey, String pageLastRowKey, boolean isAsc, Boolean isNext,
                                 RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
-
-        Assert.notNull(pageFirstRowKey, "pageFirstRowKey must not be null");
-        Assert.notNull(pageLastRowKey, "pageLastRowKey must not be null");
-
         List<T> page;
         if (isNext == null) {
             if (isAsc) {
@@ -314,7 +310,7 @@ public class HBaseTemplate implements HBaseOperations {
     public long findRowCount(String tableName, String startRow, String stopRow, FilterList filterList) {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow));
+        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
 
         if (filterList != null && filterList.hasFilterRow()) {
             scan.setFilter(filterList);
