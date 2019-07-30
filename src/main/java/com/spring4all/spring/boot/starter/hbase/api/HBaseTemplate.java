@@ -105,7 +105,7 @@ public class HBaseTemplate implements HBaseOperations {
     public <T> List<T> findFirstPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
+        scan.setStopRow(Bytes.toBytes(stopRow));
         return this.findFirstOrLastPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
 
@@ -119,7 +119,7 @@ public class HBaseTemplate implements HBaseOperations {
         final Scan scan = new Scan();
         scan.setReversed(true);
         scan.setStartRow(Bytes.toBytes(stopRow));
-        scan.setStopRow(Bytes.toBytes(startRow + "_"));
+        scan.setStopRow(Bytes.toBytes(startRow));
         return this.findFirstOrLastPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
 
@@ -133,7 +133,7 @@ public class HBaseTemplate implements HBaseOperations {
         final Scan scan = new Scan();
         scan.setReversed(true);
         scan.setStartRow(Bytes.toBytes(stopRow));
-        scan.setStopRow(Bytes.toBytes(startRow + "_"));
+        scan.setStopRow(Bytes.toBytes(startRow));
 
         return this.findPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
@@ -147,7 +147,7 @@ public class HBaseTemplate implements HBaseOperations {
     public <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
+        scan.setStopRow(Bytes.toBytes(stopRow));
 
         return this.findPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
@@ -167,13 +167,13 @@ public class HBaseTemplate implements HBaseOperations {
             if (isAsc) {
                 page = this.findNextPage(tableName, pageLastRowKey, stopRow, pageSize, mapper, columns, filterList);
             } else {
-                page = this.findPreviousPage(tableName, startRow, pageFirstRowKey, pageSize, mapper, columns, filterList);
+                page = this.findPreviousPage(tableName, startRow, pageLastRowKey, pageSize, mapper, columns, filterList);
             }
         } else {
             if (isAsc) {
                 page = this.findPreviousPage(tableName, startRow, pageFirstRowKey, pageSize, mapper, columns, filterList);
             } else {
-                page = this.findNextPage(tableName, pageLastRowKey, stopRow, pageSize, mapper, columns, filterList);
+                page = this.findNextPage(tableName, pageFirstRowKey, stopRow, pageSize, mapper, columns, filterList);
             }
         }
 
@@ -255,7 +255,7 @@ public class HBaseTemplate implements HBaseOperations {
 
         scan.setReversed(!isAsc);
         scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
+        scan.setStopRow(Bytes.toBytes(stopRow));
 
         if (columns != null) {
             for (Column column : columns) {
@@ -310,7 +310,7 @@ public class HBaseTemplate implements HBaseOperations {
     public long findRowCount(String tableName, String startRow, String stopRow, FilterList filterList) {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow + "_"));
+        scan.setStopRow(Bytes.toBytes(stopRow));
 
         if (filterList != null && filterList.hasFilterRow()) {
             scan.setFilter(filterList);
