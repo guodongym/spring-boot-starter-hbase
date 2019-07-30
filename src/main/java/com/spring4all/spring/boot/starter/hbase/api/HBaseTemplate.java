@@ -17,6 +17,7 @@ import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -175,6 +176,7 @@ public class HBaseTemplate implements HBaseOperations {
             } else {
                 page = this.findNextPage(tableName, pageFirstRowKey, stopRow, pageSize, mapper, columns, filterList);
             }
+            Collections.reverse(page);
         }
 
         return page;
