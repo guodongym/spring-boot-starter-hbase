@@ -3,6 +3,7 @@ package com.spring4all.spring.boot.starter.hbase.api;
 import com.spring4all.spring.boot.starter.hbase.page.Column;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
@@ -16,10 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Central class for accessing the HBase API. Simplifies the use of HBase and helps to avoid common errors.
@@ -31,6 +29,8 @@ import java.util.Map;
  * @author JThink
  */
 public class HBaseTemplate implements HBaseOperations {
+
+    final String MAX_ASCLL = Bytes.toString(Bytes.fromHex("7F"));
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HBaseTemplate.class);
 
@@ -296,6 +296,11 @@ public class HBaseTemplate implements HBaseOperations {
 
     @Override
     public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper) {
+        final byte[] stopRow = scan.getStopRow();
+        if (stopRow != null && !Arrays.equals(stopRow, HConstants.EMPTY_END_ROW)) {
+            final String stopRowInclude = Bytes.toString(scan.getStopRow()) + MAX_ASCLL;
+            scan.setStopRow(Bytes.toBytes(stopRowInclude));
+        }
         return this.execute(tableName, table -> {
             try (ResultScanner scanner = table.getScanner(scan)) {
                 List<T> rs = new ArrayList<>();
