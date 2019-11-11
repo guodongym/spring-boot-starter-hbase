@@ -275,6 +275,13 @@ public class HBaseTemplate implements HBaseOperations {
 
         final int finalPageSize = pageSize;
         final List<String> rowList = this.execute(tableName, table -> {
+
+            final byte[] stopRowBytes = scan.getStopRow();
+            if (stopRowBytes != null && !Arrays.equals(stopRowBytes, HConstants.EMPTY_END_ROW)) {
+                final String stopRowInclude = Bytes.toString(scan.getStopRow()) + MAX_ASCLL;
+                scan.setStopRow(Bytes.toBytes(stopRowInclude));
+            }
+
             try (ResultScanner scanner = table.getScanner(scan)) {
                 List<String> rs = new ArrayList<>();
                 int rowNum = 0;
