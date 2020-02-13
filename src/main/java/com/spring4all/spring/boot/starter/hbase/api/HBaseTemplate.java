@@ -3,7 +3,6 @@ package com.spring4all.spring.boot.starter.hbase.api;
 import com.spring4all.spring.boot.starter.hbase.page.Column;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
@@ -17,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Central class for accessing the HBase API. Simplifies the use of HBase and helps to avoid common errors.
@@ -107,7 +108,7 @@ public class HBaseTemplate implements HBaseOperations {
         final Scan scan = new Scan();
         scan.setStartRow(Bytes.toBytes(startRow));
         scan.setStopRow(Bytes.toBytes(stopRow));
-        return this.findFirstOrLastPage(tableName, pageSize, mapper, scan, columns, filterList);
+        return this.findPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
 
     @Override
@@ -121,68 +122,20 @@ public class HBaseTemplate implements HBaseOperations {
         scan.setReversed(true);
         scan.setStartRow(Bytes.toBytes(stopRow));
         scan.setStopRow(Bytes.toBytes(startRow));
-        return this.findFirstOrLastPage(tableName, pageSize, mapper, scan, columns, filterList);
-    }
-
-    @Override
-    public <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper) {
-        return this.findPreviousPage(tableName, startRow, stopRow, pageSize, mapper, null, null);
-    }
-
-    @Override
-    public <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
-        final Scan scan = new Scan();
-        scan.setReversed(true);
-        scan.setStartRow(Bytes.toBytes(stopRow));
-        scan.setStopRow(Bytes.toBytes(startRow));
-
-        return this.findPage(tableName, pageSize, mapper, scan, columns, filterList);
-    }
-
-    @Override
-    public <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper) {
-        return this.findNextPage(tableName, startRow, stopRow, pageSize, mapper, null, null);
-    }
-
-    @Override
-    public <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
-        final Scan scan = new Scan();
-        scan.setStartRow(Bytes.toBytes(startRow));
-        scan.setStopRow(Bytes.toBytes(stopRow));
-
         return this.findPage(tableName, pageSize, mapper, scan, columns, filterList);
     }
 
     @Override
     public <T> List<T> findPage(String tableName, String startRow, String stopRow, int pageSize,
-                                String pageFirstRowKey, String pageLastRowKey, boolean isAsc, Boolean isNext,
-                                RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
-        List<T> page;
-        if (isNext == null) {
-            if (isAsc) {
-                page = this.findFirstPage(tableName, startRow, stopRow, pageSize, mapper, columns, filterList);
-            } else {
-                page = this.findLastPage(tableName, startRow, stopRow, pageSize, mapper, columns, filterList);
-            }
-        } else if (isNext) {
-            if (isAsc) {
-                page = this.findNextPage(tableName, pageLastRowKey, stopRow, pageSize, mapper, columns, filterList);
-            } else {
-                page = this.findPreviousPage(tableName, startRow, pageLastRowKey, pageSize, mapper, columns, filterList);
-            }
-        } else {
-            if (isAsc) {
-                page = this.findPreviousPage(tableName, startRow, pageFirstRowKey, pageSize, mapper, columns, filterList);
-            } else {
-                page = this.findNextPage(tableName, pageFirstRowKey, stopRow, pageSize, mapper, columns, filterList);
-            }
-            Collections.reverse(page);
+                                String pageLastRowKey, RowMapper<T> mapper, List<Column> columns, FilterList filterList) {
+        String pageStartRow = startRow;
+        if (StringUtils.isNotBlank(pageLastRowKey)) {
+            pageStartRow = pageLastRowKey;
         }
-
-        return page;
+        return this.findFirstPage(tableName, pageStartRow, stopRow, pageSize, mapper, columns, filterList);
     }
 
-    private <T> List<T> findFirstOrLastPage(String tableName, int pageSize, RowMapper<T> mapper, Scan scan, List<Column> columns, FilterList filterList) {
+    private <T> List<T> findPage(String tableName, int pageSize, RowMapper<T> mapper, Scan scan, List<Column> columns, FilterList filterList) {
         scan.setMaxVersions();
 
         if (columns != null) {
@@ -199,26 +152,6 @@ public class HBaseTemplate implements HBaseOperations {
             return result;
         }
         return result.subList(0, pageSize);
-    }
-
-    private <T> List<T> findPage(String tableName, int pageSize, RowMapper<T> mapper, Scan scan, List<Column> columns, FilterList filterList) {
-        scan.setMaxVersions();
-
-        if (columns != null) {
-            for (Column column : columns) {
-                scan.addColumn(Bytes.toBytes(column.getFamily()), Bytes.toBytes(column.getQualifier()));
-            }
-        }
-
-        final int getSize = pageSize + 1;
-        filterList = setPageFilter(filterList, getSize);
-        scan.setFilter(filterList);
-
-        List<T> result = this.find(tableName, scan, mapper);
-        if (result.size() < getSize) {
-            return result.subList(1, result.size());
-        }
-        return result.subList(1, getSize);
     }
 
     private FilterList setPageFilter(FilterList filterList, int pageSize) {
@@ -275,13 +208,6 @@ public class HBaseTemplate implements HBaseOperations {
 
         final int finalPageSize = pageSize;
         final List<String> rowList = this.execute(tableName, table -> {
-
-            final byte[] stopRowBytes = scan.getStopRow();
-            if (stopRowBytes != null && !Arrays.equals(stopRowBytes, HConstants.EMPTY_END_ROW)) {
-                final String stopRowInclude = Bytes.toString(scan.getStopRow()) + MAX_ASCLL;
-                scan.setStopRow(Bytes.toBytes(stopRowInclude));
-            }
-
             try (ResultScanner scanner = table.getScanner(scan)) {
                 List<String> rs = new ArrayList<>();
                 int rowNum = 0;
@@ -303,11 +229,6 @@ public class HBaseTemplate implements HBaseOperations {
 
     @Override
     public <T> List<T> find(String tableName, final Scan scan, final RowMapper<T> mapper) {
-        final byte[] stopRow = scan.getStopRow();
-        if (stopRow != null && !Arrays.equals(stopRow, HConstants.EMPTY_END_ROW)) {
-            final String stopRowInclude = Bytes.toString(scan.getStopRow()) + MAX_ASCLL;
-            scan.setStopRow(Bytes.toBytes(stopRowInclude));
-        }
         return this.execute(tableName, table -> {
             try (ResultScanner scanner = table.getScanner(scan)) {
                 List<T> rs = new ArrayList<>();
