@@ -126,6 +126,32 @@ public interface HBaseOperations {
     <T> List<T> findLastPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
 
     /**
+     * 获取后一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey,需要传递当前页最后一条数据的RowKey
+     * @param stopRow   结束rowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取后一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey,需要传递当前页最后一条数据的RowKey
+     * @param stopRow    结束rowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
      * 分页查询数据，不支持跳页，不支持排序按照HBase存储顺序返回
      * 基于每页的最后一条数据改变rowKey查询范围，达到分页的目的
      *
