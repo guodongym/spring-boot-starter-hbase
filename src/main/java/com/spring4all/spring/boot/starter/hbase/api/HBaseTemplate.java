@@ -162,8 +162,7 @@ public class HBaseTemplate implements HBaseOperations {
             }
         }
 
-        filterList = setPageFilter(filterList, pageSize);
-        scan.setFilter(filterList);
+        scan.setFilter(setPageFilter(filterList, pageSize));
 
         List<T> result = this.find(tableName, scan, mapper);
         if (result.size() < pageSize) {
@@ -266,6 +265,8 @@ public class HBaseTemplate implements HBaseOperations {
         scan.setStopRow(Bytes.toBytes(stopRow));
 
         if (filterList != null && filterList.hasFilterRow()) {
+            // 移除分页过滤器，否则会导致总条数只会小于等于pageSize
+            filterList.getFilters().removeIf(filter -> filter instanceof PageFilter);
             scan.setFilter(filterList);
         }
         return this.execute(tableName, table -> {
