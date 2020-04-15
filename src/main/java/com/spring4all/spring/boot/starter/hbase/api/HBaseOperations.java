@@ -20,6 +20,15 @@ import java.util.Map;
 public interface HBaseOperations {
 
     /**
+     * 执行HBase管理维护命令
+     *
+     * @param action 执行器
+     * @param <T>    执行结果类型
+     * @return 执行结果
+     */
+    <T> T executeAdmin(AdminCallback<T> action);
+
+    /**
      * Executes the given action against the specified table handling resource management.
      * <p>
      * Application exceptions thrown by the action object get propagated to the caller (can only be unchecked).

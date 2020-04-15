@@ -48,6 +48,27 @@ public class HBaseTemplate implements HBaseOperations {
     }
 
     @Override
+    public <T> T executeAdmin(AdminCallback<T> action) {
+        Assert.notNull(action, "Callback object must not be null");
+
+        Admin admin = null;
+        try {
+            admin = this.getConnection().getAdmin();
+            return action.doInAdmin(admin);
+        } catch (Throwable throwable) {
+            throw new HBaseSystemException(throwable);
+        } finally {
+            if (null != admin) {
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    LOGGER.error("hbase资源释放失败", e);
+                }
+            }
+        }
+    }
+
+    @Override
     public <T> T execute(String tableName, TableCallback<T> action) {
         Assert.notNull(action, "Callback object must not be null");
         Assert.notNull(tableName, "No table specified");
