@@ -135,6 +135,32 @@ public interface HBaseOperations {
     <T> List<T> findLastPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
 
     /**
+     * 获取前一页数据
+     *
+     * @param tableName 表名
+     * @param startRow  开始rowKey
+     * @param stopRow   结束rowKey,需要传递当前页第一条数据的RowKey
+     * @param pageSize  每页大小
+     * @param mapper    mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper);
+
+    /**
+     * 获取前一页数据
+     *
+     * @param tableName  表名
+     * @param startRow   开始rowKey
+     * @param stopRow    结束rowKey,需要传递当前页第一条数据的RowKey
+     * @param pageSize   每页大小
+     * @param columns    需要返回的列
+     * @param filterList 过滤器列表，不需要配置分页过滤器
+     * @param mapper     mapper type, implemented by {@link RowMapper}
+     * @return 该页数据
+     */
+    <T> List<T> findPreviousPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+
+    /**
      * 获取后一页数据
      *
      * @param tableName 表名
@@ -161,7 +187,7 @@ public interface HBaseOperations {
     <T> List<T> findNextPage(String tableName, String startRow, String stopRow, int pageSize, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
 
     /**
-     * 分页查询数据，不支持跳页，不支持排序按照HBase存储顺序返回
+     * 分页查询数据，不支持跳页，不支持前翻，支持排序，常用于导出场景
      * 基于每页的最后一条数据改变rowKey查询范围，达到分页的目的
      *
      * @param tableName      表名
@@ -169,13 +195,14 @@ public interface HBaseOperations {
      * @param stopRow        结束rowKey
      * @param pageSize       每页条数
      * @param pageLastRowKey 当前页的末行数据的rowKey, 由后端返回，首页调用时传空值
+     * @param isAsc          是否正序
      * @param mapper         mapper type, implemented by {@link RowMapper}
      * @param columns        需要返回的列  允许null
      * @param filterList     过滤器列表，不需要配置分页过滤器 允许null
      * @return 该页数据
      */
     <T> List<T> findPage(String tableName, String startRow, String stopRow, int pageSize,
-                         String pageLastRowKey, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
+                         String pageLastRowKey, boolean isAsc, RowMapper<T> mapper, List<Column> columns, FilterList filterList);
 
     /**
      * 分页查询数据，支持跳页
